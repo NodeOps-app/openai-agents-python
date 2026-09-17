@@ -4,6 +4,7 @@ import asyncio
 import io
 import json
 import queue
+import subprocess
 import sys
 import tarfile
 import threading
@@ -358,6 +359,22 @@ def test_package_re_exports_createos_symbols() -> None:
 
     assert package.CreateOSSandboxClient is CreateOSSandboxClient
     assert package.CreateOSSandboxSession is CreateOSSandboxSession
+
+
+def test_package_omits_createos_exports_without_optional_dependency() -> None:
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.modules['createos'] = None; "
+            "from agents.extensions import sandbox; "
+            "assert not any('CreateOS' in name or 'CREATEOS' in name "
+            "for name in sandbox.__all__)",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_options_are_positional_and_round_trip() -> None:
@@ -1503,9 +1520,12 @@ async def test_cancelled_create_surfaces_cleanup_failure_with_sandbox_id(
 async def test_exec_maps_timeout_and_transport_errors() -> None:
     sandbox = _FakeSandbox()
     session = CreateOSSandboxSession.from_state(_state(), sandbox=sandbox)
-    sandbox.next_error = _OperationTimeout("slow")
-    with pytest.raises(ExecTimeoutError):
+    provider_timeout = _OperationTimeout("slow")
+    sandbox.next_error = provider_timeout
+    with pytest.raises(ExecTimeoutError) as timeout_info:
         await session.exec("slow", shell=False, timeout=1)
+    assert timeout_info.value.context["provider_error"] == "slow"
+    assert timeout_info.value.cause is provider_timeout
 
     sandbox.next_error = _APIError(401, "unauthorized")
     with pytest.raises(ExecTransportError) as exc_info:

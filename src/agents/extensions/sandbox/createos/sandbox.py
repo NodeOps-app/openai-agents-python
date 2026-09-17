@@ -137,11 +137,10 @@ async def _to_thread_settled(
         if timeout is None:
             await asyncio.shield(task)
         else:
-            await asyncio.wait_for(asyncio.shield(task), timeout=timeout)
+            done, _ = await asyncio.wait({task}, timeout=timeout)
+            timed_out = not done
     except asyncio.CancelledError:
         caller_cancelled = True
-    except TimeoutError:
-        timed_out = True
 
     if caller_cancelled or timed_out:
         while not task.done():

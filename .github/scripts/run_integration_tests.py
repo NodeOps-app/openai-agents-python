@@ -602,6 +602,10 @@ def main() -> None:
                     additional_env["OPENAI_AGENTS_INTEGRATION_REQUIRED_OPTIONAL_EXTRA"] = (
                         installation.extra
                     )
+                    if installation.distribution is not None:
+                        additional_env[
+                            "OPENAI_AGENTS_INTEGRATION_REQUIRED_OPTIONAL_DISTRIBUTION"
+                        ] = installation.distribution
                 run_suite(
                     python,
                     wheel,

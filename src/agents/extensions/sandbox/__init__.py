@@ -1,4 +1,8 @@
+from importlib.util import find_spec
+
 try:
+    if find_spec("createos") is None:
+        raise ImportError("The optional CreateOS dependency is not installed")
     from .createos import (
         DEFAULT_CREATEOS_WORKSPACE_ROOT as DEFAULT_CREATEOS_WORKSPACE_ROOT,
         CreateOSSandboxClient as CreateOSSandboxClient,

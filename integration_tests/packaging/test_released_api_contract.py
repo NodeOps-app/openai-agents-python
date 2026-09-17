@@ -17,6 +17,7 @@ PROSPECTIVE_CONTRACT_ENV = "OPENAI_AGENTS_PROSPECTIVE_RELEASE_CONTRACT"
 REQUIRED_OPTIONAL_DEPENDENCIES_ENV = "OPENAI_AGENTS_INTEGRATION_REQUIRED_OPTIONAL_DEPENDENCIES"
 OPTIONAL_DEPENDENCY_INSTALLATION_ENV = "OPENAI_AGENTS_INTEGRATION_OPTIONAL_DEPENDENCY_INSTALLATION"
 REQUIRED_OPTIONAL_EXTRA_ENV = "OPENAI_AGENTS_INTEGRATION_REQUIRED_OPTIONAL_EXTRA"
+REQUIRED_OPTIONAL_DISTRIBUTION_ENV = "OPENAI_AGENTS_INTEGRATION_REQUIRED_OPTIONAL_DISTRIBUTION"
 
 
 def _distributions_declared_by_extra(requirement_strings: list[str], extra: str) -> set[str]:
@@ -38,6 +39,7 @@ def _extra_metadata_error(
     *,
     extra: str,
     dependency_module: str,
+    distribution: str | None = None,
     provided_extras: list[str],
     requirement_strings: list[str],
 ) -> str | None:
@@ -51,7 +53,7 @@ def _extra_metadata_error(
             "the extra under [project.optional-dependencies]."
         )
 
-    distribution_name = canonicalize_name(dependency_module)
+    distribution_name = canonicalize_name(distribution or dependency_module)
     declared_distributions = _distributions_declared_by_extra(requirement_strings, extra)
     if distribution_name not in declared_distributions:
         return (
@@ -126,6 +128,7 @@ def test_artifact_extra_declares_its_policy_dependency() -> None:
     error = _extra_metadata_error(
         extra=extra,
         dependency_module=dependency_module,
+        distribution=os.environ.get(REQUIRED_OPTIONAL_DISTRIBUTION_ENV),
         provided_extras=metadata("openai-agents").get_all("Provides-Extra") or [],
         requirement_strings=requires("openai-agents") or [],
     )
@@ -170,6 +173,31 @@ def test_extra_metadata_provenance_rejects_unknown_extra() -> None:
         "The installed openai-agents artifact does not provide policy extra 'missing'. Correct "
         "its entry in tests/fixtures/released_api_contract_policy.json or add the extra under "
         "[project.optional-dependencies]."
+    )
+
+
+def test_extra_metadata_provenance_uses_declared_distribution() -> None:
+    requirement_strings = ['createos-sandbox>=0.1.0,<0.2; extra == "createos"']
+
+    assert (
+        _extra_metadata_error(
+            extra="createos",
+            dependency_module="createos",
+            distribution="createos-sandbox",
+            provided_extras=["createos"],
+            requirement_strings=requirement_strings,
+        )
+        is None
+    )
+    assert (
+        _extra_metadata_error(
+            extra="createos",
+            dependency_module="createos",
+            distribution="createos-sandbox",
+            provided_extras=["createos"],
+            requirement_strings=['other-package>=1; extra == "createos"'],
+        )
+        is not None
     )
 
 
