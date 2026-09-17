@@ -25,7 +25,7 @@ Most examples call a model through `Runner`, so set `OPENAI_API_KEY` in the repo
 
 ## Cloud backend examples
 
-Cloud-provider examples live under [`extensions/`](./extensions/). They cover E2B, Modal, and Daytona sandbox backends and require provider-specific credentials in addition to `OPENAI_API_KEY`.
+Cloud-provider examples live under [`extensions/`](./extensions/). They cover CreateOS, E2B, Modal, Daytona, Cloudflare, Runloop, Blaxel, and Vercel sandbox backends and require provider-specific credentials in addition to `OPENAI_API_KEY`.
 
 ## Tutorial scaffold
 

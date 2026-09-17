@@ -1,4 +1,18 @@
 try:
+    from .createos import (
+        DEFAULT_CREATEOS_WORKSPACE_ROOT as DEFAULT_CREATEOS_WORKSPACE_ROOT,
+        CreateOSSandboxClient as CreateOSSandboxClient,
+        CreateOSSandboxClientOptions as CreateOSSandboxClientOptions,
+        CreateOSSandboxSession as CreateOSSandboxSession,
+        CreateOSSandboxSessionState as CreateOSSandboxSessionState,
+        CreateOSSandboxTimeouts as CreateOSSandboxTimeouts,
+    )
+
+    _HAS_CREATEOS = True
+except Exception:  # pragma: no cover
+    _HAS_CREATEOS = False
+
+try:
     from .e2b import (
         E2BCloudBucketMountStrategy as E2BCloudBucketMountStrategy,
         E2BSandboxClient as E2BSandboxClient,
@@ -112,6 +126,18 @@ except Exception:  # pragma: no cover
     _HAS_VERCEL = False
 
 __all__: list[str] = []
+
+if _HAS_CREATEOS:
+    __all__.extend(
+        [
+            "DEFAULT_CREATEOS_WORKSPACE_ROOT",
+            "CreateOSSandboxClient",
+            "CreateOSSandboxClientOptions",
+            "CreateOSSandboxSession",
+            "CreateOSSandboxSessionState",
+            "CreateOSSandboxTimeouts",
+        ]
+    )
 
 if _HAS_E2B:
     __all__.extend(
