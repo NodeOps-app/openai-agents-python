@@ -36,6 +36,7 @@ class OptionalDependencyInstallation:
     extra: str | None = None
     requirement: str | None = None
     unsupported_platforms: tuple[str, ...] = ()
+    distribution: str | None = None
 
     def is_supported_on_current_platform(self) -> bool:
         return sys.platform not in self.unsupported_platforms
@@ -113,7 +114,7 @@ def load_submodule_export_policy(path: Path) -> SubmoduleExportPolicy:
                 f"optional dependency installation for {module_name} must be an object"
             )
         unknown_fields = sorted(
-            set(installation) - {"extra", "requirement", "unsupported_platforms"}
+            set(installation) - {"extra", "requirement", "unsupported_platforms", "distribution"}
         )
         if unknown_fields:
             raise ValueError(
@@ -133,6 +134,14 @@ def load_submodule_export_policy(path: Path) -> SubmoduleExportPolicy:
                 f"optional dependency installation {field_name} for {module_name} must be a "
                 "non-empty string"
             )
+        distribution = installation.get("distribution")
+        if distribution is not None and (
+            field_name != "extra" or type(distribution) is not str or not distribution
+        ):
+            raise ValueError(
+                f"optional dependency installation distribution for {module_name} must be a "
+                "non-empty string declared with an extra"
+            )
         unsupported_platforms = installation.get("unsupported_platforms", [])
         if (
             not isinstance(unsupported_platforms, list)
@@ -149,6 +158,7 @@ def load_submodule_export_policy(path: Path) -> SubmoduleExportPolicy:
                 extra=install_value if field_name == "extra" else None,
                 requirement=install_value if field_name == "requirement" else None,
                 unsupported_platforms=tuple(unsupported_platforms),
+                distribution=distribution,
             )
         )
 

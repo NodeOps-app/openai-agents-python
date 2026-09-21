@@ -368,6 +368,10 @@
     "aiosqlite": {
       "requirement": "aiosqlite>=0.21.0"
     },
+    "createos": {
+      "extra": "createos",
+      "distribution": "createos-sandbox"
+    },
     "cryptography": {
       "extra": "encrypt"
     },
@@ -422,6 +426,12 @@
         "CloudflareSandboxClientOptions": "aiohttp",
         "CloudflareSandboxSession": "aiohttp",
         "CloudflareSandboxSessionState": "aiohttp",
+        "CreateOSSandboxClient": "createos",
+        "CreateOSSandboxClientOptions": "createos",
+        "CreateOSSandboxSession": "createos",
+        "CreateOSSandboxSessionState": "createos",
+        "CreateOSSandboxTimeouts": "createos",
+        "DEFAULT_CREATEOS_WORKSPACE_ROOT": "createos",
         "DEFAULT_RUNLOOP_ROOT_WORKSPACE_ROOT": "runloop_api_client",
         "DEFAULT_RUNLOOP_WORKSPACE_ROOT": "runloop_api_client",
         "ModalCloudBucketMountStrategy": "modal",

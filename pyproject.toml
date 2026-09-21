@@ -60,6 +60,7 @@ dapr = [
 ]
 mongodb = ["pymongo>=4.14"]
 docker = ["docker>=6.1"]
+createos = ["createos-sandbox>=0.1.0,<0.2"]
 blaxel = ["blaxel>=0.2.50", "aiohttp>=3.14.3,<4"]
 daytona = [
     "daytona>=0.155.0",
@@ -197,6 +198,10 @@ module = "sounddevice.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+module = ["createos", "createos.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = ["modal", "modal.*"]
 ignore_missing_imports = true
 
@@ -269,10 +274,10 @@ format-command = "ruff format --stdin-filename {filename}"
 
 [tool.uv]
 exclude-newer = "7 days"
-exclude-newer-package = { openai = false }
+exclude-newer-package = { createos-sandbox = false, openai = false }
 index-strategy = "first-index"
 
 [tool.uv.pip]
 exclude-newer = "7 days"
-exclude-newer-package = { openai = false }
+exclude-newer-package = { createos-sandbox = false, openai = false }
 index-strategy = "first-index"

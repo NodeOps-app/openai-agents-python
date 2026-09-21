@@ -6,9 +6,27 @@ They intentionally keep the flow simple:
 
 1. Build a tiny manifest in memory.
 2. Create a `SandboxAgent` that inspects that workspace through one shell tool.
-3. Run the agent against E2B, Modal, Daytona, Cloudflare, Runloop, Blaxel, or Vercel.
+3. Run the agent against CreateOS, E2B, Modal, Daytona, Cloudflare, Runloop, Blaxel, or Vercel.
 
 All of these examples require `OPENAI_API_KEY`, because they call the model through the normal `Runner` path. Each cloud backend also needs its own provider credentials.
+
+## CreateOS
+
+Install the CreateOS extra and configure the provider API key:
+
+```bash
+uv sync --extra createos
+export CREATEOS_API_KEY=...
+export OPENAI_API_KEY=...
+```
+
+Run the minimal agent example:
+
+```bash
+uv run python examples/sandbox/extensions/createos_runner.py --stream
+```
+
+The example defaults to the `s-4vcpu-4gb` shape and `devbox:1` root filesystem. Override them with `--shape` and `--rootfs` when your CreateOS environment uses different catalog entries. Add `--pause-on-exit` to preserve the sandbox for a later resumed run; otherwise the runner destroys it during cleanup.
 
 ## E2B
 

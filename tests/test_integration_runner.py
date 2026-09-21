@@ -847,6 +847,18 @@ def test_prospective_contract_profile_isolates_each_policy_installation(
         (installation.dependency_module, installation.extra)
         for installation in supported_installations
     }
+    createos_suites = [
+        suite
+        for suite in isolated_suites
+        if suite["additional_env"]["OPENAI_AGENTS_INTEGRATION_REQUIRED_OPTIONAL_DEPENDENCIES"]
+        == "createos"
+    ]
+    assert len(createos_suites) == 2
+    assert all(
+        suite["additional_env"]["OPENAI_AGENTS_INTEGRATION_REQUIRED_OPTIONAL_DISTRIBUTION"]
+        == "createos-sandbox"
+        for suite in createos_suites
+    )
 
 
 @pytest.mark.parametrize("platform", ["linux", "win32"])

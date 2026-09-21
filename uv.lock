@@ -13,6 +13,7 @@ exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for 
 exclude-newer-span = "P7D"
 
 [options.exclude-newer-package]
+createos-sandbox = false
 openai = false
 
 [[package]]
@@ -798,6 +799,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/72/9b/27fbf79451b1fac15c4bda6ec6e9deae27cf7c0648c1305aa21a3454f5c4/coverage-7.10.3-cp314-cp314t-win_amd64.whl", hash = "sha256:424ea93a323aa0f7f01174308ea78bde885c3089ec1bef7143a6d93c3e24ef64", size = 220898, upload-time = "2025-08-10T21:27:16.297Z" },
     { url = "https://files.pythonhosted.org/packages/d1/cf/a32bbf92869cbf0b7c8b84325327bfc718ad4b6d2c63374fef3d58e39306/coverage-7.10.3-cp314-cp314t-win_arm64.whl", hash = "sha256:f5983c132a62d93d71c9ef896a0b9bf6e6828d8d2ea32611f58684fba60bba35", size = 218922, upload-time = "2025-08-10T21:27:18.22Z" },
     { url = "https://files.pythonhosted.org/packages/84/19/e67f4ae24e232c7f713337f3f4f7c9c58afd0c02866fb07c7b9255a19ed7/coverage-7.10.3-py3-none-any.whl", hash = "sha256:416a8d74dc0adfd33944ba2f405897bab87b7e9e84a391e09d241956bd953ce1", size = 207921, upload-time = "2025-08-10T21:27:38.254Z" },
+]
+
+[[package]]
+name = "createos-sandbox"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d4/79/c5a9d65ea24b258865f37db9c1b9d48afaba1eb372ed098be7c873c9badd/createos_sandbox-0.1.1.tar.gz", hash = "sha256:cfa544bde569e2c8f840bd23a5733d503ddf95e916e37c3623460a75d5dc8c0e", size = 42607, upload-time = "2026-09-11T12:06:41.982Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/d5/1f024854ef4a5342fec124a6e7469f32b0eb2cbdaf65a5f2d42d074c46c3/createos_sandbox-0.1.1-py3-none-any.whl", hash = "sha256:faee37ccf62b22e4bda09d3c8819b38075e1cc4ccb4651724d72a4c48a4874a0", size = 29040, upload-time = "2026-09-11T12:06:40.486Z" },
 ]
 
 [[package]]
@@ -2643,6 +2656,9 @@ blaxel = [
 cloudflare = [
     { name = "aiohttp" },
 ]
+createos = [
+    { name = "createos-sandbox" },
+]
 dapr = [
     { name = "aiohttp" },
     { name = "dapr" },
@@ -2770,6 +2786,7 @@ requires-dist = [
     { name = "boto3", marker = "extra == 's3'", specifier = ">=1.34" },
     { name = "cbor2", marker = "extra == 'modal'", specifier = ">=5.9.0" },
     { name = "cbor2", marker = "extra == 'vercel'", specifier = ">=5.9.0" },
+    { name = "createos-sandbox", marker = "extra == 'createos'", specifier = ">=0.1.0,<0.2" },
     { name = "cryptography", marker = "extra == 'encrypt'", specifier = ">=45.0,<51" },
     { name = "dapr", marker = "extra == 'dapr'", specifier = ">=1.16.0" },
     { name = "daytona", marker = "extra == 'daytona'", specifier = ">=0.155.0" },
@@ -2815,7 +2832,7 @@ requires-dist = [
     { name = "websockets", marker = "extra == 'realtime'", specifier = ">=15.0,<17" },
     { name = "websockets", marker = "extra == 'voice'", specifier = ">=15.0,<17" },
 ]
-provides-extras = ["voice", "viz", "litellm", "any-llm", "realtime", "sqlalchemy", "encrypt", "redis", "dapr", "mongodb", "docker", "blaxel", "daytona", "cloudflare", "e2b", "modal", "runloop", "vercel", "s3", "temporal"]
+provides-extras = ["voice", "viz", "litellm", "any-llm", "realtime", "sqlalchemy", "encrypt", "redis", "dapr", "mongodb", "docker", "createos", "blaxel", "daytona", "cloudflare", "e2b", "modal", "runloop", "vercel", "s3", "temporal"]
 
 [package.metadata.requires-dev]
 dev = [

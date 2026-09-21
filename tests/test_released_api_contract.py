@@ -3508,7 +3508,8 @@ def test_load_submodule_export_policy_collects_artifact_installations(tmp_path: 
         '{"LazyBinding": "binding_dependency"}, "optional_exports": '
         '{"ConditionalExport": "export_dependency"}}}, "optional_dependencies": '
         '{"binding_dependency": {"requirement": "binding-package>=1"}, '
-        '"export_dependency": {"extra": "export-extra"}}, "public_properties": '
+        '"export_dependency": {"extra": "export-extra", '
+        '"distribution": "provider-wheel"}}, "public_properties": '
         '[{"class_name": "ConditionalExport", '
         '"module": "agents.submodule", "names": ["status"]}, '
         '{"factory_name": "create_client", '
@@ -3536,12 +3537,14 @@ def test_load_submodule_export_policy_collects_artifact_installations(tmp_path: 
             "extra": None,
             "requirement": "binding-package>=1",
             "unsupported_platforms": (),
+            "distribution": None,
         },
         {
             "dependency_module": "export_dependency",
             "extra": "export-extra",
             "requirement": None,
             "unsupported_platforms": (),
+            "distribution": "provider-wheel",
         },
     ]
     assert policy.canonical_imports == (
