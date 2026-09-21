@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from typing_extensions import assert_never
 
 from .. import _debug
+from .._function_tool_arguments import FunctionToolApproval
 from .._tool_identity import (
     FunctionToolLookupKey,
     get_function_tool_lookup_key,
@@ -23,6 +24,7 @@ from ..agent import Agent
 from ..exceptions import (
     ModelBehaviorError,
     ToolInputGuardrailTripwireTriggered,
+    ToolOutputGuardrailTripwireTriggered,
     UserError,
     _clear_data_redacted_error_traceback,
     _detach_data_redacted_error_traceback,
@@ -41,8 +43,8 @@ from ..run_config import ToolErrorFormatterArgs
 from ..run_context import RunContextWrapper, TContext
 from ..tool import DEFAULT_APPROVAL_REJECTION_MESSAGE, FunctionTool, Tool, invoke_function_tool
 from ..tool_context import ToolContext
-from ..tool_guardrails import ToolInputGuardrailData
-from ..util._approvals import evaluate_needs_approval_setting, parse_function_tool_arguments
+from ..tool_guardrails import ToolInputGuardrailData, ToolOutputGuardrailData
+from ..util._approvals import evaluate_function_tool_approval
 from ..util._asyncio_tasks import gather_with_cancel
 from ._tool_filtering import filter_enabled_tools
 from ._tool_validation import validate_realtime_tool_names
@@ -650,19 +652,11 @@ class RealtimeSession(RealtimeModelListener):
 
     async def _function_needs_approval(
         self, function_tool: FunctionTool, tool_call: RealtimeModelToolCallEvent
-    ) -> bool:
-        """Evaluate a function tool's needs_approval setting with parsed args."""
-        needs_setting = getattr(function_tool, "needs_approval", False)
-        parsed_args: dict[str, Any] = {}
-        if callable(needs_setting):
-            parsed_args_result = parse_function_tool_arguments(tool_call.arguments)
-            if parsed_args_result is None:
-                return True
-            parsed_args = parsed_args_result
-        return await evaluate_needs_approval_setting(
-            needs_setting,
+    ) -> FunctionToolApproval:
+        return await evaluate_function_tool_approval(
+            function_tool,
             self._context_wrapper,
-            parsed_args,
+            tool_call.arguments,
             tool_call.call_id,
             strict=False,
         )
@@ -702,6 +696,7 @@ class RealtimeSession(RealtimeModelListener):
         function_tool: FunctionTool,
         agent: RealtimeAgent,
         dispatch_snapshot: _RealtimeDispatchSnapshot,
+        tool_context: ToolContext[Any],
     ) -> bool | None | _PendingToolOutput:
         """Return approval status, pending output for guardrail rejection, or None when awaiting."""
         tool_lookup_key = get_function_tool_lookup_key_for_tool(function_tool)
@@ -718,7 +713,9 @@ class RealtimeSession(RealtimeModelListener):
             tool_lookup_key=tool_lookup_key,
         )
         if approval_status is None:
-            needs_approval = await self._function_needs_approval(function_tool, tool_call)
+            evaluation = await self._function_needs_approval(function_tool, tool_call)
+            evaluation.check_invocation(function_tool, tool_call.arguments)
+            tool_context._function_tool_arguments = evaluation.prepared
             if self._closing or self._closed:
                 return None
             approval_status = self._context_wrapper.get_approval_status(
@@ -727,7 +724,7 @@ class RealtimeSession(RealtimeModelListener):
                 existing_pending=approval_item,
                 tool_lookup_key=tool_lookup_key,
             )
-            if approval_status is None and not needs_approval:
+            if approval_status is None and evaluation.outcome == "invoke":
                 return True
 
         if approval_status is True:
@@ -820,6 +817,30 @@ class RealtimeSession(RealtimeModelListener):
             if gr_out.behavior["type"] == "reject_content":
                 return gr_out.behavior["message"]
         return None
+
+    async def _run_tool_output_guardrails(
+        self,
+        *,
+        tool: FunctionTool,
+        tool_context: ToolContext[Any],
+        agent: RealtimeAgent,
+        output: Any,
+    ) -> Any:
+        """Check the result before caching or publishing a function tool output."""
+        guardrails = tool.tool_output_guardrails
+        if not guardrails:
+            return output
+        for guardrail in guardrails:
+            gr_out = await guardrail.run(
+                ToolOutputGuardrailData(
+                    context=tool_context, agent=cast(Agent[Any], agent), output=output
+                )
+            )
+            if gr_out.behavior["type"] == "raise_exception":
+                raise ToolOutputGuardrailTripwireTriggered(guardrail=guardrail, output=gr_out)
+            if gr_out.behavior["type"] == "reject_content":
+                return gr_out.behavior["message"]
+        return output
 
     def _build_realtime_tool_output(
         self,
@@ -1151,6 +1172,7 @@ class RealtimeSession(RealtimeModelListener):
         ):
             return
 
+        tool_context: ToolContext[Any] | None = None
         try:
             if pending_output is not None:
                 await self._send_tool_output_completion(pending_output)
@@ -1177,11 +1199,19 @@ class RealtimeSession(RealtimeModelListener):
                     tool_lookup_key=approval_item.tool_lookup_key,
                     route_role="function",
                 )
+                tool_context = ToolContext.from_agent_context(
+                    self._context_wrapper,
+                    tool_name=event.name,
+                    tool_call_id=event.call_id,
+                    tool_arguments=event.arguments,
+                    agent=agent,
+                )
                 approval_status = await self._maybe_request_tool_approval(
                     event,
                     function_tool=func_tool,
                     agent=agent,
                     dispatch_snapshot=snapshot,
+                    tool_context=tool_context,
                 )
                 if self._closing or self._closed:
                     return
@@ -1230,17 +1260,19 @@ class RealtimeSession(RealtimeModelListener):
                 if self._closing or self._closed:
                     return
 
-                tool_context = ToolContext.from_agent_context(
-                    self._context_wrapper,
-                    tool_name=event.name,
-                    tool_call_id=event.call_id,
-                    tool_arguments=event.arguments,
-                    agent=agent,
-                )
                 result = await invoke_function_tool(
                     function_tool=func_tool,
                     context=tool_context,
                     arguments=event.arguments,
+                )
+                if self._closing or self._closed:
+                    return
+
+                result = await self._run_tool_output_guardrails(
+                    tool=func_tool,
+                    tool_context=tool_context,
+                    agent=agent,
+                    output=result,
                 )
                 if self._closing or self._closed:
                     return
@@ -1354,6 +1386,8 @@ class RealtimeSession(RealtimeModelListener):
                     )
                 )
         finally:
+            if tool_context is not None:
+                tool_context._function_tool_arguments = None
             self._finish_tool_call(event.call_id, mark_completed=mark_completed)
 
     def _begin_tool_call(
@@ -1924,11 +1958,7 @@ class RealtimeSession(RealtimeModelListener):
             self._put_event_nowait(
                 RealtimeError(
                     info=self._event_info,
-                    error={
-                        "message": (
-                            f"Tool output send failed; cached output will be retried: {exception}"
-                        )
-                    },
+                    error={"message": "Tool output send failed; cached output will be retried"},
                 )
             )
             return
@@ -1941,7 +1971,7 @@ class RealtimeSession(RealtimeModelListener):
         self._put_event_nowait(
             RealtimeError(
                 info=self._event_info,
-                error={"message": f"Tool call task failed: {exception}"},
+                error={"message": "Tool call task failed"},
             )
         )
 
